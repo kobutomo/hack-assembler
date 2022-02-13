@@ -6,6 +6,7 @@ use std::{
 };
 
 #[derive(PartialEq)]
+#[allow(dead_code)]
 enum InstructionTypes {
     A = 0,
     C = 1,
@@ -52,12 +53,13 @@ fn get_type(row: &String) -> Option<InstructionTypes> {
 fn destruct_insc(mut line: String) -> decoder::InsC {
     let dest = {
         if line.find("=") != None {
-            Some(line.split("=").nth(0).unwrap().to_string())
+            let dest = line.split("=").nth(0).unwrap().to_string();
+            line = line.split("=").nth(1).unwrap().to_string();
+            Some(dest)
         } else {
             None
         }
     };
-    line = line.split("=").nth(1).unwrap().to_string();
     let (comp, jump) = {
         if line.find(";") != None {
             let mut sp = line.split(";");
