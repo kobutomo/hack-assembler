@@ -17,14 +17,13 @@ pub fn parse(file_reader: io::BufReader<fs::File>) -> Result<Vec<decoder::Instru
     let mut ret: Vec<decoder::Instruction> = Vec::new();
     for line in file_reader.lines() {
         let res = match line {
-            Ok(l) => l,
+            Ok(l) => l.replace(" ", ""),
             Err(e) => return Err(e),
         };
         let i_type = match get_type(&res) {
             Some(t) => t,
             None => continue,
         };
-
         match i_type {
             InstructionTypes::A => {
                 ret.push(decoder::Instruction::A(decoder::InsA(
@@ -45,6 +44,7 @@ fn get_type(row: &String) -> Option<InstructionTypes> {
     match row.chars().nth(0) {
         Some('@') => Some(InstructionTypes::A),
         Some('(') => Some(InstructionTypes::L),
+        Some('/') => None,
         Some(_) => Some(InstructionTypes::C),
         None => None,
     }
