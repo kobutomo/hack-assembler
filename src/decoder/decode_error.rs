@@ -10,7 +10,7 @@ pub enum DecodeError {
 macro_rules! decode_err {
     ($msg:expr $(,)?) => {
         $crate::decoder::decode_error::DecodeError::Error {
-            msg: format!($msg),
+            msg: $msg,
             location: format!("{}:{}:{}", file!(), line!(), column!()),
         }
     };

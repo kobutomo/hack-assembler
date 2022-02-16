@@ -1,4 +1,5 @@
 use super::decoder;
+use super::symbol_table;
 
 use std::{
     fs,
@@ -13,11 +14,16 @@ enum InstructionTypes {
     L = 2,
 }
 
-pub fn parse(file_reader: io::BufReader<fs::File>) -> Result<Vec<decoder::Instruction>, io::Error> {
+pub fn parse(
+    file_reader: io::BufReader<fs::File>,
+    symbol_table: &mut symbol_table::SymbolTable,
+) -> Result<Vec<decoder::Instruction>, io::Error> {
     let mut ret: Vec<decoder::Instruction> = Vec::new();
+    let mut lines = Vec::new();
+
     for line in file_reader.lines() {
         let res = match line {
-            Ok(l) => l.replace(" ", ""),
+            Ok(l) => l.split("//").nth(0).unwrap().replace(" ", ""),
             Err(e) => return Err(e),
         };
         let i_type = match get_type(&res) {
@@ -25,18 +31,37 @@ pub fn parse(file_reader: io::BufReader<fs::File>) -> Result<Vec<decoder::Instru
             None => continue,
         };
         match i_type {
+            InstructionTypes::A | InstructionTypes::C => {
+                symbol_table.address_increment();
+                lines.push(res);
+            }
+            InstructionTypes::L => {
+                let label = &res[1..res.len() - 1];
+                symbol_table.add_label(label.to_string(), symbol_table.next_address)
+            }
+        }
+    }
+
+    for line in lines {
+        let i_type = match get_type(&line) {
+            Some(t) => t,
+            None => continue,
+        };
+        match i_type {
             InstructionTypes::A => {
                 ret.push(decoder::Instruction::A(decoder::InsA(
-                    (&res[1..]).to_string(),
+                    (&line[1..]).to_string(),
                 )));
             }
             InstructionTypes::C => {
-                let insc = destruct_insc(res);
+                let insc = destruct_insc(line);
                 ret.push(decoder::Instruction::C(insc));
             }
-            InstructionTypes::L => { /* TODO: symbol table 作成 */ }
+            _ => {}
         }
     }
+
+    symbol_table.next_address = 16;
     Ok(ret)
 }
 
@@ -44,7 +69,6 @@ fn get_type(row: &String) -> Option<InstructionTypes> {
     match row.chars().nth(0) {
         Some('@') => Some(InstructionTypes::A),
         Some('(') => Some(InstructionTypes::L),
-        Some('/') => None,
         Some(_) => Some(InstructionTypes::C),
         None => None,
     }
